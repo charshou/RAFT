@@ -165,6 +165,37 @@ def validate_kitti(model, iters=24):
     print("Validation KITTI: %f, %f" % (epe, f1))
     return {'kitti-epe': epe, 'kitti-f1': f1}
 
+@torch.no_grad()
+def validate_easytear(model, iters=24):
+    model.eval()
+    val_dataset = datasets.Easytear(split="training")
+
+    epe_list = []
+    for val_id in range(len(val_dataset)):
+        image1, image2, flow_gt, valid_gt = val_dataset[val_id]
+        image1 = image1[None].cuda()
+        image2 = image2[None].cuda()
+
+        padder = InputPadder(image1.shape)
+        image1, image2 = padder.pad(image1, image2)
+
+        flow_low, flow_pr = model(image1, image2, iters=iters, test_mode=True)
+        flow = padder.unpad(flow_pr[0]).cpu()
+
+        # calculate flow at point and compare to flow calculated 
+
+        epe = torch.sum((flow - flow_gt)**2, dim=0).sqrt()
+
+        epe = epe.view(-1)
+
+        epe_list.append(epe.mean().item())
+
+    epe_list = np.array(epe_list)
+
+    epe = np.mean(epe_list)
+
+    return {"easytear": epe}
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

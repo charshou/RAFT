@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import torch
+torch.cuda.empty_cache()
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -163,6 +164,8 @@ def train(args):
         for i_batch, data_blob in enumerate(train_loader):
             optimizer.zero_grad()
             image1, image2, flow, valid = [x.cuda() for x in data_blob]
+            image1 = torch.full((2, 3, 480, 704), 0)
+            image2 = torch.full((2, 3, 480, 704), 0)
 
             if args.add_noise:
                 stdv = np.random.uniform(0.0, 5.0)
@@ -194,6 +197,8 @@ def train(args):
                         results.update(evaluate.validate_sintel(model.module))
                     elif val_dataset == 'kitti':
                         results.update(evaluate.validate_kitti(model.module))
+                    elif val_dataset == "easytear":
+                        results.update(evaluate.validate_easytear(model.module))
 
                 logger.write_dict(results)
                 
