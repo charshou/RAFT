@@ -225,4 +225,7 @@ if __name__ == '__main__':
         elif args.dataset == 'kitti':
             validate_kitti(model.module)
 
+        elif args.dataset == 'easytear':
+            validate_easytear(model.module)
+
 

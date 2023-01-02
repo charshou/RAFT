@@ -164,8 +164,6 @@ def train(args):
         for i_batch, data_blob in enumerate(train_loader):
             optimizer.zero_grad()
             image1, image2, flow, valid = [x.cuda() for x in data_blob]
-            image1 = torch.full((2, 3, 480, 704), 0)
-            image2 = torch.full((2, 3, 480, 704), 0)
 
             if args.add_noise:
                 stdv = np.random.uniform(0.0, 5.0)
@@ -212,7 +210,7 @@ def train(args):
                 should_keep_training = False
                 break
 
-    logger.close()
+    # logger.close()
     PATH = 'checkpoints/%s.pth' % args.name
     torch.save(model.state_dict(), PATH)
 

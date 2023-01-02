@@ -68,10 +68,25 @@ class FlowDataset(data.Dataset):
             im_shape = img1.shape
             ind1 = torch.tensor([0])
             ind2 = torch.tensor([1])
-            point_flow = np.array(self.expected_points[index][1]) - np.array(self.expected_points[index][0])
-            flow = torch.full((2, im_shape[1], im_shape[2]), 0.0)
-            flow = flow.index_fill(0, ind1, point_flow[0]).index_fill(0, ind2, point_flow[1])
 
+            # calculate average flow and apply everywhere
+            # then apply flow at specific points in a radius 
+            radius = 50
+
+            points_set = self.expected_points[index]
+            avg_point_flow = 0
+            for i in range(len(points_set)):
+                avg_point_flow += (np.array(points_set[i][1]) - np.array(points_set[i][0])) / len(points_set)
+            flow = torch.full((2, im_shape[1], im_shape[2]), 0.0)
+            flow = flow.index_fill(0, ind1, avg_point_flow[0]).index_fill(0, ind2, avg_point_flow[1])
+
+            for i in range(len(points_set)):
+                p1, p2 = points_set[i]
+                point_flow = np.array(p2) - np.array(p1)
+                x, y = int(p1[1]), int(p1[0])
+                flow[0, max(0, x - radius): x + radius, max(0, y - radius): y + radius] = point_flow[0]
+                flow[1, max(0, x - radius): x + radius, max(0, y - radius): y + radius] = point_flow[1]
+ 
             valid = (flow[0].abs() < 1000) & (flow[1].abs() < 1000)
 
             return img1, img2, flow, valid.float()
@@ -234,16 +249,22 @@ class Easytear(FlowDataset):
         for id, obj in dataset_mapping.items():
             video, blink = obj
             images = sorted(glob(osp.join(root, video + f"_blink_{blink}", '*.png')))
-            curr_tracks = list(filter(lambda x: x.get("task_id") == str(id), tracks))
+
+            # match blink and video
+            curr_tracks = list(filter(lambda x: x.get("task_id") == str(id) and x.get("label") == f'keypoint_blink_{blink}', tracks))
             points = []
 
-            while len(points) < len(images):
-                points.extend(curr_tracks.pop(0).findall("points"))
+            # add points for just the frames we add
+            while len(curr_tracks) > 0:
+                points.append(curr_tracks.pop(0).findall("points")[:len(images)])
 
             for i in range(len(images) - 1):
-                points0 = [float(p) for p in points[i].get("points").split(",")]
-                points1 = [float(p) for p in points[i + 1].get("points").split(",")]
-                self.expected_points.append([points0, points1])
+                new_points = []
+                for curr_points in points:
+                    points0 = [float(p) for p in curr_points[i].get("points").split(",")]
+                    points1 = [float(p) for p in curr_points[i + 1].get("points").split(",")]
+                    new_points.append([points0, points1])
+                self.expected_points.append(new_points)
                 self.image_list.append([images[i], images[i + 1]])
 
 
