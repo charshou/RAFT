@@ -74,11 +74,13 @@ class FlowDataset(data.Dataset):
             radius = 50
 
             points_set = self.expected_points[index]
-            avg_point_flow = 0
+            """ avg_point_flow = 0
             for i in range(len(points_set)):
                 avg_point_flow += (np.array(points_set[i][1]) - np.array(points_set[i][0])) / len(points_set)
             flow = torch.full((2, im_shape[1], im_shape[2]), 0.0)
-            flow = flow.index_fill(0, ind1, avg_point_flow[0]).index_fill(0, ind2, avg_point_flow[1])
+            flow = flow.index_fill(0, ind1, avg_point_flow[0]).index_fill(0, ind2, avg_point_flow[1]) """
+
+            flow = torch.full((2, im_shape[1], im_shape[2]), 0.0)
 
             for i in range(len(points_set)):
                 p1, p2 = points_set[i]
@@ -289,6 +291,7 @@ class HD1K(FlowDataset):
 
 def fetch_dataloader(args, TRAIN_DS='C+T+K+S+H'):
     """ Create the data loader for the corresponding trainign set """
+    train_dataset = None
 
     if args.stage == 'chairs':
         aug_params = {'crop_size': args.image_size, 'min_scale': -0.1, 'max_scale': 1.0, 'do_flip': True}
