@@ -20,12 +20,11 @@ from utils.augmentor import FlowAugmentor, SparseFlowAugmentor
 
 dataset_mapping = {
     4: ("LC3-Subj 8-20210324_OS", 2),
-}
-""" 5: ("OS4-430 (3149)-OD-TLL-07112022", 2),
-    6: ('OS4-434 (3239)-OD2-TLL-08232022', 123),
-    7: ("LC3-Subj 7-20210225 OD", 1),
+    5: ("OS4-430 (3149)-OD-TLL-07112022", 2),
+    7: ("LC3-Subj 7-20210225 OD", 1), # remove last 5 frames
     8: ('nhj0d8765l', 3),
-    9: ("OS4-435 (3231)-OD2-TLL-08182022", 3) """
+    9: ("OS4-435 (3231)-OD2-TLL-08182022", 3) 
+}
 
 
 class FlowDataset(data.Dataset):
@@ -71,7 +70,7 @@ class FlowDataset(data.Dataset):
 
             # calculate average flow and apply everywhere
             # then apply flow at specific points in a radius 
-            radius = 50
+            radius = 10
 
             points_set = self.expected_points[index]
             """ avg_point_flow = 0
@@ -260,6 +259,9 @@ class Easytear(FlowDataset):
             while len(curr_tracks) > 0:
                 points.append(curr_tracks.pop(0).findall("points")[:len(images)])
 
+            print(len(points))
+            print(len(points[0]))
+            print(len(images))
             for i in range(len(images) - 1):
                 new_points = []
                 for curr_points in points:
