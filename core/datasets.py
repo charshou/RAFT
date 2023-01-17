@@ -73,13 +73,13 @@ class FlowDataset(data.Dataset):
             radius = 10
 
             points_set = self.expected_points[index]
-            """ avg_point_flow = 0
+            avg_point_flow = 0
             for i in range(len(points_set)):
                 avg_point_flow += (np.array(points_set[i][1]) - np.array(points_set[i][0])) / len(points_set)
             flow = torch.full((2, im_shape[1], im_shape[2]), 0.0)
-            flow = flow.index_fill(0, ind1, avg_point_flow[0]).index_fill(0, ind2, avg_point_flow[1]) """
+            flow = flow.index_fill(0, ind1, avg_point_flow[0]).index_fill(0, ind2, avg_point_flow[1])
 
-            flow = torch.full((2, im_shape[1], im_shape[2]), 0.0)
+            # flow = torch.full((2, im_shape[1], im_shape[2]), 0.0)
 
             for i in range(len(points_set)):
                 p1, p2 = points_set[i]
