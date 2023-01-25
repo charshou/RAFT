@@ -44,6 +44,23 @@ MAX_FLOW = 400
 SUM_FREQ = 100
 VAL_FREQ = 5000
 
+def sequence_loss_sparse(flow_preds, flow_gt, valid, valid_points, gamma=0.8, max_flow=MAX_FLOW):
+    n_predictions = len(valid_points)    
+    flow_loss = 0.0
+
+    # exlude invalid pixels and extremely large diplacements
+    mag = torch.sum(flow_gt**2, dim=1).sqrt()
+    valid = (valid >= 0.5) & (mag < max_flow)
+
+    for i in range(n_predictions):
+        i_weight = gamma**(n_predictions - i - 1)
+        i_loss = (flow_preds[i] - flow_gt).abs()
+        for x, y in valid_points:
+            i_loss_mat = i_weight * (valid[:, None] * i_loss)
+            flow_loss += i_loss_mat[0][x][y] / (2 * n_predictions)
+            flow_loss += i_loss_mat[1][x][y] / (2 * n_predictions)
+
+    return flow_loss, {}
 
 def sequence_loss(flow_preds, flow_gt, valid, gamma=0.8, max_flow=MAX_FLOW):
     """ Loss function defined over sequence of flow predictions """
@@ -163,7 +180,9 @@ def train(args):
 
         for i_batch, data_blob in enumerate(train_loader):
             optimizer.zero_grad()
-            image1, image2, flow, valid = [x.cuda() for x in data_blob]
+            # image1, image2, flow, valid = [x.cuda() for x in data_blob]
+            image1, image2, flow, valid, valid_points = data_blob
+            image1, image2, flow, valid = image1.cuda(), image2.cuda(), flow.cuda(), valid.cuda()
 
             if args.add_noise:
                 stdv = np.random.uniform(0.0, 5.0)
@@ -172,7 +191,8 @@ def train(args):
 
             flow_predictions = model(image1, image2, iters=args.iters)            
 
-            loss, metrics = sequence_loss(flow_predictions, flow, valid, args.gamma)
+            # loss, metrics = sequence_loss(flow_predictions, flow, valid, args.gamma)
+            loss, metrics = sequence_loss(flow_predictions, flow, valid, valid_points, args.gamma)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)                
             torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
@@ -196,9 +216,10 @@ def train(args):
                     elif val_dataset == 'kitti':
                         results.update(evaluate.validate_kitti(model.module))
                     elif val_dataset == "easytear":
-                        results.update(evaluate.validate_easytear(model.module))
+                        # results.update(evaluate.validate_easytear(model.module))
+                        pass
 
-                logger.write_dict(results)
+                # logger.write_dict(results)
                 
                 model.train()
                 if args.stage != 'chairs':

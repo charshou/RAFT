@@ -80,17 +80,18 @@ class FlowDataset(data.Dataset):
             flow = flow.index_fill(0, ind1, avg_point_flow[0]).index_fill(0, ind2, avg_point_flow[1])
 
             # flow = torch.full((2, im_shape[1], im_shape[2]), 0.0)
-
+            valid_points = []
             for i in range(len(points_set)):
                 p1, p2 = points_set[i]
                 point_flow = np.array(p2) - np.array(p1)
                 x, y = int(p1[1]), int(p1[0])
+                valid_points.append(np.array([x, y]))
                 flow[0, max(0, x - radius): x + radius, max(0, y - radius): y + radius] = point_flow[0]
                 flow[1, max(0, x - radius): x + radius, max(0, y - radius): y + radius] = point_flow[1]
  
             valid = (flow[0].abs() < 1000) & (flow[1].abs() < 1000)
 
-            return img1, img2, flow, valid.float()
+            return img1, img2, flow, valid.float(), valid_points
 
         if self.is_test:
             img1 = frame_utils.read_gen(self.image_list[index][0])
